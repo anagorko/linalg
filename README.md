@@ -5,6 +5,15 @@ This module, meant for **educational purposes only**, supports learning of basic
 It was created to supplement a "Linear algebra and geometry I" course taught during winter semester
 at the University of Warsaw Mathematics Department.
 
+## Installation
+
+Just paste and run
+```
+!wget -N https://raw.githubusercontent.com/anagorko/linalg/main/linalg.py
+from linalg import IMatrix
+```
+into your Sage notebook. Thanks to @samorajp for the tip.
+
 ## Examples
 
 
