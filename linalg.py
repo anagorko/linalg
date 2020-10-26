@@ -243,6 +243,9 @@ class IMatrix(sage.structure.sage_object.SageObject):
     def as_equations(self) -> 'SoLE':
         return SoLE(self)
 
+    def as_combination(self) -> 'LinearCombination':
+        return LinearCombination(self)
+
     def plot(self):
         return self.as_equations().plot()
 
@@ -429,6 +432,36 @@ class SoLE(IMatrix):
 
     def _repr_(self) -> str:
         return f'IMatrix({repr(list(self.M))}, separate={self.column_separator}).as_equations()'
+
+
+class LinearCombination(IMatrix):
+    """System of linear equations interpreted as linear combination."""
+
+    def __init__(self, M: IMatrix):
+        super().__init__(M.M, separate=M.column_separator, copy=False, var=M.var)
+
+        if self.column_separator != 1:
+            print('Uwaga: macierz nie wygląda na układ równań.')
+
+    def _format_column(self, col_n: int) -> str:
+        """Format column as a column vector."""
+
+        output = list()
+
+        output.append(r'\left[\begin{array}{c}')
+        output += [sage.all.latex(self.M[i][col_n]) + r'\\' for i in range(self.M.ncols())]
+        output.append(r'\end{array}\right]')
+
+        return '\n'.join(output)
+
+    def _latex_(self) -> str:
+        lhs = list()
+        for i in range(self.M.ncols() - self.column_separator):
+            lhs.append(self.var[i] + self._format_column(i))
+
+        output = ['+'.join(lhs), '=', self._format_column(-1)]
+
+        return ' '.join(output)
 
 
 def main():
