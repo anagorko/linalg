@@ -4,6 +4,10 @@ This module, meant for **educational purposes only**, supports learning of basic
 It was created to supplement a "Linear algebra and geometry I" course taught during winter semester 2020
 at the University of Warsaw Mathematics Department.
 
+To update, run:
+
+!wget -N https://raw.githubusercontent.com/anagorko/linalg/main/linalg.py
+
 AUTHORS:
     Andrzej Nagórko, Jarosław Wiśniewski
 
