@@ -18,7 +18,7 @@ in your Sage notebook. Thanks to @samorajp for the tip.
 
 
 ```python
-A = IMatrix([[2, 3, 1], [3,1,0]], separate=1, var=['x', 'y'])
+A = IMatrix([[2, 3, 1], [3,1,0]], separate=1, names=['x', 'y'])
 show(A.as_equations())
 ```
 
