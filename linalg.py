@@ -12,67 +12,103 @@ AUTHORS:
     Andrzej Nagórko, Jarosław Wiśniewski
 
 VERSION:
-    26/10/2020
+    2/11/2020
 """
 
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Union
 from itertools import combinations
+import unittest
 
 import sage.all
 import sage.structure.sage_object
+import sage.symbolic.expression
+import sage.symbolic.operators
 
-# noinspection PyUnresolvedReferences
-from sage.symbolic.expression import Expression
 from sage.misc.html import HtmlFragment
 from sage.repl.ipython_kernel.interact import sage_interactive
-
 from ipywidgets import SelectionSlider
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+try:
+    get_ipython().run_line_magic('matplotlib', 'inline')
+except NameError:
+    pass  # We are not running in a notebook
+
+
+def format_coefficient(coefficient) -> str:
+    """Wrap coefficient in parentheses, if necessary."""
+
+    if isinstance(coefficient, sage.symbolic.expression.Expression):
+        if coefficient.operator() == sage.symbolic.operators.add_vararg:
+            return f'({sage.all.latex(coefficient)})'
+        return sage.all.latex(coefficient)
+
+    if sage.all.latex(coefficient)[0] == '-':
+        return f'({sage.all.latex(coefficient)})'
+
+    if hasattr(coefficient, 'coefficients'):
+        # Polynomials
+        if len(coefficient.coefficients()) > 1:
+            return f'({sage.all.latex(coefficient)})'
+
+        return sage.all.latex(coefficient)
+
+    return sage.all.latex(coefficient)
 
 
 class IMatrix(sage.structure.sage_object.SageObject):
     """Interactive matrix class."""
 
-    def __init__(self, M, separate=0, copy=True, var: Optional[List[str]] = None):
-        """Instantiate IMatrix from a matrix-like object M. Entries of M are copied."""
+    def __init__(self, M, separate=0, copy=True, names: Optional[Union[List[str], str]] = None):
+        """Instantiate an IMatrix from a matrix-like object M.
 
-        if copy:
-            self.M = sage.all.matrix(sage.all.SR, M)
-        else:
-            self.M = M
-            """Matrix entries."""
-        self.column_separator = separate
+        Arguments:
+            M - matrix  coefficients.
+
+        Keyword arguments:
+            separate - number of columns to separate;
+            copy     - make a copy of M, if True;
+            var      - names of variables corresponding to non-separated columns.
+        """
+
+        self.M: sage.all.Matrix = sage.all.matrix(M) if copy else M
+        """Matrix entries."""
+
+        self.separate = separate
         """Column separator placement, counting from the right side."""
 
-        if var is None:
-            self.var = [f'x_{i+1}' for i in range(self.M.ncols() - self.column_separator)]
-        elif isinstance(var, str):
-            self.var = [f'{var}_{i+1}' for i in range(self.M.ncols() - self.column_separator)]
+        if names is None:
+            names = [f'x_{i+1}' for i in range(self.M.ncols() - self.separate)]
+        elif isinstance(names, str):
+            names = [f'{names}_{i+1}' for i in range(self.M.ncols() - self.separate)]
         else:
-            assert len(var) == self.M.ncols() - self.column_separator
-            self.var = var
-        """Variable names"""
+            assert len(names) == self.M.ncols() - self.separate
 
-        self.var_sr = list()
-        for v in self.var:
-            self.var_sr.append(sage.all.SR.var(v))
-        """Variables."""
+        self.var = sage.all.PolynomialRing(self.M.base_ring(), names=names).gens()
+        """Variables corresponding to non-separated columns."""
+
+    def __eq__(self, other):
+        return self.M == other.M and self.separate == other.separate and self.var == other.var and \
+               self.M.base_ring() == other.M.base_ring()
 
     def _repr_(self) -> str:
-        return f'IMatrix({repr(list(self.M))}, separate={self.column_separator})'
+        """Represent IMatrix as a valid Python expression.
+
+        TODO (anagorko): preserve information about coefficient ring of the matrix."""
+
+        return f'IMatrix({repr(list(self.M))}, separate={self.separate}' \
+               f', names={[str(v) for v in self.var]})'
 
     def _latex_(self) -> str:
+        """Represent IMatrix as a LaTeX formula."""
+
         output = list()
 
-        if self.column_separator > 0:
-            column_format = 'r' * (self.M.ncols() - self.column_separator) + '|' + \
-                            'r' * self.column_separator
-        else:
-            column_format = 'r' * self.M.ncols()
+        column_format = 'r' * (self.M.ncols() - self.separate) + \
+                        ('|' if self.separate > 0 else '') + \
+                        'r' * self.separate
 
         output.append(r'\left[\begin{array}{'f'{column_format}''}')
         for row in self.M:
@@ -81,31 +117,9 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
         return '\n'.join(output)
 
-    @staticmethod
-    def _format_coefficient(s: sage.all.SR, for_addition=True) -> str:
-        if isinstance(s, Expression):
-            if s.args():
-                return f'+({sage.all.latex(s)})'
-
-        if s > 0 and for_addition:
-            return f'+{sage.all.latex(s)}'
-
-        return f'{sage.all.latex(s)}'
-
-    @staticmethod
-    def _format_coefficient_separated(s: sage.all.SR) -> str:
-        if isinstance(s, Expression):
-            if s.args():
-                return f'+ & ({sage.all.latex(s)})'
-
-        if s == 1:
-            return '+ & '
-        if s >= 0:
-            return f'+ & {sage.all.latex(s)}'
-
-        return f'- & {sage.all.latex(-s)}'
-
     def _format_row_operations(self, op: Dict[int, str]) -> str:
+        """Represent list operations as a LaTeX formula."""
+
         output = list()
 
         operations = [r'\ '] * self.M.nrows()
@@ -118,18 +132,22 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
         return '\n'.join(output)
 
-    def _add_multiple_of_row(self, i: int, j: int, s: sage.all.SR) -> Dict[int, str]:
+    def _add_multiple_of_row(self, i: int, j: int, s) -> Dict[int, str]:
         """Add s times row j to row i. The operation is done in place."""
 
         self.M.add_multiple_of_row(i, j, s)
 
-        return {i: fr'{IMatrix._format_coefficient(s)} \cdot w_{j+1}'}
+        return {i: fr'+{format_coefficient(s)} \cdot w_{j+1}'}
 
-    def add_multiple_of_row(self, i: int, j: int, s: sage.all.SR) -> HtmlFragment:
+    def add_multiple_of_row(self, i: int, j: int, s) -> HtmlFragment:
         """Add s times row j to row i. The operation is done in place."""
 
-        return HtmlFragment(r'\[' + self._latex_() + self._format_row_operations(self._add_multiple_of_row(i, j, s))
-                            + r'\rightarrow' + self._latex_() + r'\]')
+        return HtmlFragment(''.join([r'\[',
+                                     self._latex_(),
+                                     self._format_row_operations(self._add_multiple_of_row(i, j, s)),
+                                     r'\rightarrow',
+                                     self._latex_(),
+                                     r'\]']))
 
     def _swap_rows(self, r1: int, r2: int) -> Dict[int, str]:
         """Swap rows r1 and r2 of self. The operation is done in place."""
@@ -141,28 +159,35 @@ class IMatrix(sage.structure.sage_object.SageObject):
     def swap_rows(self, r1: int, r2: int) -> HtmlFragment:
         """Swap rows r1 and r2 of self. The operation is done in place."""
 
-        return HtmlFragment(r'\[' + self._latex_() + self._format_row_operations(self._swap_rows(r1, r2))
-                            + r'\rightarrow' + self._latex_() + r'\]')
+        return HtmlFragment(''.join([r'\[',
+                                     self._latex_(),
+                                     self._format_row_operations(self._swap_rows(r1, r2)),
+                                     r'\rightarrow',
+                                     self._latex_(),
+                                     r'\]']))
 
     def _rescale_row(self, i: int, s: sage.all.SR) -> Dict[int, str]:
         """Replace i-th row of self by s times i-th row of self. The operation is done in place."""
 
         self.M.rescale_row(i, s)
 
-        return {i: fr'\cdot {IMatrix._format_coefficient(s, False)}'}
+        return {i: fr'\cdot {format_coefficient(s)}'}
 
     def rescale_row(self, i: int, s: sage.all.SR) -> HtmlFragment:
         """Replace i-th row of self by s times i-th row of self. The operation is done in place."""
 
-        return HtmlFragment(r'\[' + self._latex_() + self._format_row_operations(self._rescale_row(i, s))
-                            + r'\rightarrow' + self._latex_() + r'\]')
+        return HtmlFragment(''.join([r'\[',
+                                     self._latex_(),
+                                     self._format_row_operations(self._rescale_row(i, s)),
+                                     r'\rightarrow',
+                                     self._latex_() + r'\]']))
 
     def to_echelon_form(self) -> HtmlFragment:
         """Transform self to the echelon form of self."""
 
         output = list()
 
-        # Gaussian elimination algorithm is a modified version of
+        # Gaussian elimination algorithm is derived from
         # https://ask.sagemath.org/question/8840/how-to-show-the-steps-of-gauss-method/
 
         col = 0  # all cols before this are already done
@@ -181,12 +206,14 @@ class IMatrix(sage.structure.sage_object.SageObject):
                 else:
                     col += 1
 
-            if col >= self.M.ncols() - self.column_separator:
+            if col >= self.M.ncols() - self.separate:
                 break
 
             # Now guaranteed M[row][col] != 0
             if self.M[row][col] != 1:
-                if self.M[row][col].args():
+                if hasattr(self.M[row][col], 'args') and self.M[row][col].args():
+                    # TODO(anagorko): this currently doesn't work with polynomials of degree 0
+
                     output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie'
                                   f'${sage.all.latex(self.M[row][col])}$ jest niezerowe.')
                     break
@@ -246,6 +273,10 @@ class IMatrix(sage.structure.sage_object.SageObject):
     def as_combination(self) -> 'LinearCombination':
         return LinearCombination(self)
 
+    def as_matrix(self) -> 'IMatrix':
+        names = [str(v) for v in self.var]
+        return IMatrix(self.M, copy=False, names=names, separate=self.separate)
+
     def plot(self):
         return self.as_equations().plot()
 
@@ -254,16 +285,25 @@ class SoLE(IMatrix):
     """System of linear equations."""
 
     def __init__(self, M: IMatrix):
-        super().__init__(M.M, separate=M.column_separator, copy=False, var=M.var)
+        names = [str(v) for v in M.var]
 
-        if self.column_separator != 1:
+        super().__init__(M.M, separate=M.separate, copy=False, names=names)
+
+        if self.separate != 1:
+            # TODO(anagorko): allow separate=0 and treat it as a homogeneous system
             print('Uwaga: macierz nie wygląda na układ równań.')
 
         self.x_min = None
+        """Plot x range (min)."""
         self.x_max = None
+        """Plot x range (max)."""
         self.y_min = None
+        """Plot y range (min)."""
         self.y_max = None
-        """Plot range"""
+        """Plot y range (max)."""
+
+        self.var_sr = [sage.all.var(str(v)) for v in self.var]
+        """SR variants of variables."""
 
     def _format_row_operations(self, op: Dict[int, str]) -> str:
         output = list()
@@ -281,7 +321,7 @@ class SoLE(IMatrix):
     def _latex_(self) -> str:
         output = list()
 
-        column_format = 'c' * (self.M.ncols() - self.column_separator) * 2 + 'l' * self.column_separator
+        column_format = 'c' * (self.M.ncols() - self.separate) * 2 + 'l' * self.separate
 
         output.append(r'\left\{\begin{array}{'f'{column_format}''}')
         output += ['&'.join(self._format_row(row)) + r'\\' for row in self.M]
@@ -297,9 +337,9 @@ class SoLE(IMatrix):
         for i, coefficient in enumerate(row):
             sign = ''
             if i > 0 and not empty_so_far:
-                if i == self.M.ncols() - self.column_separator:
+                if i == self.M.ncols() - self.separate:
                     sign = '='
-                elif i < self.M.ncols() - self.column_separator:
+                elif i < self.M.ncols() - self.separate:
                     if coefficient == 0.0:
                         sign = ''
                     elif coefficient < 0.0:
@@ -309,11 +349,11 @@ class SoLE(IMatrix):
                         sign = '+'
 
             variable = 1
-            if coefficient != 0.0 and i < self.M.ncols() - self.column_separator:
-                variable = self.var_sr[i]
+            if coefficient != 0.0 and i < self.M.ncols() - self.separate:
+                variable = self.var[i]
             term = variable * coefficient
 
-            if term == 0.0 and i < self.M.ncols() - self.column_separator:
+            if term == 0.0 and i < self.M.ncols() - self.separate:
                 term = ''
 
             if i == 0:
@@ -343,24 +383,25 @@ class SoLE(IMatrix):
 
         return f
 
-    def _equation(self, coefficients: List) -> Expression:
+    def _equation(self, coefficients: List) -> sage.symbolic.expression.Expression:
         return sum(self.var_sr[i] * coefficients[i] for i in range(len(coefficients) - 1)) == coefficients[-1]
-#        return self.var_sr[-1] == coefficients[-1] / coefficients[-2] - \
-#               sum(self.var_sr[i] * coefficients[i] / coefficients[-2] for i in range(len(coefficients) - 2))
 
     def _format_equation(self, row: List) -> str:
         return f'${"".join(self._format_row(row))}$'
 
     def plot(self):
-        """Interactive plot of self. Supported in two and three dimensional cases."""
+        """Interactive plot of self. Supported in two dimensions (so far)."""
 
-        free_variables = list(sum(sum(self.M)).free_variables())
+        if self.M[0, 0].parent() == sage.all.SR:
+            free_variables = list(sum(sum(self.M)).free_variables())
+        else:
+            free_variables = list()
 
         var_sliders = {str(var): SelectionSlider(options=SoLE.SLIDER_RANGE, continuous_update=False, value=0)
                        for var in free_variables}
 
         def f(**_var_sliders):
-            M = self.M.subs({sage.all.SR.var(v): _var_sliders[v] for v in _var_sliders})
+            M = self.M.subs({sage.all.var(v): _var_sliders[v] for v in _var_sliders})
 
             avg_y = 0
             """Average y-value of subsystems consisting of two equations."""
@@ -431,16 +472,17 @@ class SoLE(IMatrix):
         display(w)
 
     def _repr_(self) -> str:
-        return f'IMatrix({repr(list(self.M))}, separate={self.column_separator}).as_equations()'
+        return f'IMatrix({repr(list(self.M))}, separate={self.separate}).as_equations()'
 
 
 class LinearCombination(IMatrix):
     """System of linear equations interpreted as linear combination."""
 
     def __init__(self, M: IMatrix):
-        super().__init__(M.M, separate=M.column_separator, copy=False, var=M.var)
+        names = [str(v) for v in M.var]
+        super().__init__(M.M, separate=M.separate, copy=False, names=names)
 
-        if self.column_separator != 1:
+        if self.separate != 1:
             print('Uwaga: macierz nie wygląda na układ równań.')
 
     def _format_column(self, col_n: int) -> str:
@@ -449,19 +491,29 @@ class LinearCombination(IMatrix):
         output = list()
 
         output.append(r'\left[\begin{array}{c}')
-        output += [sage.all.latex(self.M[i][col_n]) + r'\\' for i in range(self.M.ncols())]
+        output += [sage.all.latex(self.M[i][col_n]) + r'\\' for i in range(self.M.nrows())]
         output.append(r'\end{array}\right]')
 
         return '\n'.join(output)
 
     def _latex_(self) -> str:
         lhs = list()
-        for i in range(self.M.ncols() - self.column_separator):
-            lhs.append(self.var[i] + self._format_column(i))
+        for i in range(self.M.ncols() - self.separate):
+            lhs.append(str(self.var[i]) + self._format_column(i))
 
         output = ['+'.join(lhs), '=', self._format_column(-1)]
 
         return ' '.join(output)
+
+
+class IMatrixTest(unittest.TestCase):
+    def test_serialization(self):
+        """Test repr/eval."""
+
+        M = IMatrix([[1, 2, 3], [4, 5, 6]], separate=1, names='y')
+        self.assertEqual(M, eval(repr(M)))
+        # N = IMatrix(sage.all.matrix(sage.all.GF(11), [[3, 2, 1], [6, 5, 4]]), separate=1, names='y')
+        # self.assertEqual(N, eval(repr(N)))
 
 
 def main():
@@ -476,4 +528,7 @@ if __name__ == '__main__':
 else:
     print(__doc__)
     from IPython.core.display import HTML
-    display(HTML("<style>.container { width:99% !important; }</style>"))
+    try:
+        display(HTML("<style>.container { width:99% !important; }</style>"))
+    except NameError:
+        pass  # We are not running in a notebook
