@@ -50,6 +50,16 @@ A.as_equations().rescale_row(1, 1/6)
 A.as_equations().swap_rows(0, 1)
 ```
 
+### Gaussian elimination
+
+```python
+A.to_echelon_form()
+```
+
+```python
+A.to_reduced_form()
+```
+
 ### Parameters
 
 ```python
