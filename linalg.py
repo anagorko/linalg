@@ -213,8 +213,7 @@ class IMatrix(sage.structure.sage_object.SageObject):
             if self.M[row][col] != 1:
                 if hasattr(self.M[row][col], 'args') and self.M[row][col].args() \
                         and not (hasattr(self.M[row][col], 'degree') and self.M[row][col].degree() == 0):
-                    # TODO(anagorko): this currently doesn't work with polynomials of degree 0
-
+         
                     output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie'
                                   f'${sage.all.latex(self.M[row][col])}$ jest niezerowe.')
                     break
