@@ -14,7 +14,8 @@ from linalg import IMatrix
 ```
 in your Sage notebook. Thanks to @samorajp for the tip.
 
-## Basics
+## Examples
+### Basics
 
 ```python
 A = IMatrix([[2, 3, 1], [3,1,0]], separate=1, names=['x', 'y'])
@@ -49,7 +50,7 @@ A.as_equations().rescale_row(1, 1/6)
 A.as_equations().swap_rows(0, 1)
 ```
 
-## Parameters
+### Parameters
 
 ```python
 t, x1, x2, x3, x4 = var('t x1 x2 x3 x4')
