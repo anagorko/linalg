@@ -14,8 +14,7 @@ from linalg import IMatrix
 ```
 in your Sage notebook. Thanks to @samorajp for the tip.
 
-## Examples
-
+## Basics
 
 ```python
 A = IMatrix([[2, 3, 1], [3,1,0]], separate=1, names=['x', 'y'])
@@ -48,4 +47,14 @@ A.as_equations().rescale_row(1, 1/6)
 
 ```python
 A.as_equations().swap_rows(0, 1)
+```
+
+## Parameters
+
+```python
+t, x1, x2, x3, x4 = var('t x1 x2 x3 x4')
+F = PolynomialRing(QQ, [t, x1, x2, x3, x4])
+
+A = IMatrix(matrix(F, [[1, 3, x1], [1, 2, x2], [t, 1, x3], [3, 2, x4]]), separate=1, names=['a_1', 'a_2'])
+A.to_echelon_form()
 ```
