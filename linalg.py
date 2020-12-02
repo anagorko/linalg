@@ -12,7 +12,7 @@ AUTHORS:
     Andrzej Nagórko, Jarosław Wiśniewski
 
 VERSION:
-    2/11/2020
+    2/12/2020
 """
 
 from typing import Dict, List, Optional, Callable, Union
@@ -211,7 +211,8 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
             # Now guaranteed M[row][col] != 0
             if self.M[row][col] != 1:
-                if hasattr(self.M[row][col], 'args') and self.M[row][col].args():
+                if hasattr(self.M[row][col], 'args') and self.M[row][col].args() \
+                        and not (hasattr(self.M[row][col], 'degree') and self.M[row][col].degree() == 0):
                     # TODO(anagorko): this currently doesn't work with polynomials of degree 0
 
                     output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie'
