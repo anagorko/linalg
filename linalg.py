@@ -573,6 +573,46 @@ class Determinant(IMatrix):
 
         return super()._rescale_row(i, s)
 
+    def row_expansion(self, i: int) -> HtmlFragment:
+        """Laplace expansion on i-th row."""
+
+        output = list()
+        output.append(r'\[')
+        for j in range(self.M.ncols()):
+            if j > 0:
+                output.append('+')
+
+            output.append(r'(-1)^{' f'{i+1} + {j+1}' r'}\cdot')
+            output.append(f'({self.M[i, j]})'
+                          r'\cdot')
+
+            N = self.M[[k for k in range(self.M.nrows()) if k != i],
+                       [k for k in range(self.M.ncols()) if k != j]]
+            output.append(IMatrix(N).as_determinant()._latex_())
+        output.append(r'\]')
+
+        return HtmlFragment(''.join(output))
+
+    def col_expansion(self, i: int) -> HtmlFragment:
+        """Laplace expansion on i-th column."""
+
+        output = list()
+        output.append(r'\[')
+        for j in range(self.M.nrows()):
+            if j > 0:
+                output.append('+')
+
+            output.append(r'(-1)^{' f'{j+1} + {i+1}' r'}\cdot')
+            output.append(f'({self.M[j, i]})'
+                          r'\cdot')
+
+            N = self.M[[k for k in range(self.M.nrows()) if k != j],
+                       [k for k in range(self.M.ncols()) if k != i]]
+            output.append(IMatrix(N).as_determinant()._latex_())
+        output.append(r'\]')
+
+        return HtmlFragment(''.join(output))
+
 
 class IMatrixTest(unittest.TestCase):
     def test_serialization(self):
