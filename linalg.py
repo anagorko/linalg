@@ -12,8 +12,10 @@ AUTHORS:
     Andrzej Nagórko, Jarosław Wiśniewski
 
 VERSION:
-    2/12/2020
+    19/01/2021
 """
+
+from __future__ import annotations
 
 from typing import Dict, List, Optional, Callable, Union
 from itertools import combinations
@@ -35,6 +37,19 @@ try:
     get_ipython().run_line_magic('matplotlib', 'inline')
 except NameError:
     pass  # We are not running in a notebook
+
+
+def is_invertible(x):
+    """Return true if we can safely divide by x."""
+
+    try:
+        float(x)
+    except TypeError:
+        return False
+
+    # return not(hasattr(x, 'args') and x.args() and not (hasattr(x, 'degree') and x.degree() == 0))
+
+    return float(x) != 0.0
 
 
 def format_coefficient(coefficient) -> str:
@@ -166,14 +181,14 @@ class IMatrix(sage.structure.sage_object.SageObject):
                                      self._latex_(),
                                      r'\]']))
 
-    def _rescale_row(self, i: int, s: sage.all.SR) -> Dict[int, str]:
+    def _rescale_row(self, i: int, s) -> Dict[int, str]:
         """Replace i-th row of self by s times i-th row of self. The operation is done in place."""
 
         self.M.rescale_row(i, s)
 
         return {i: fr'\cdot {format_coefficient(s)}'}
 
-    def rescale_row(self, i: int, s: sage.all.SR) -> HtmlFragment:
+    def rescale_row(self, i: int, s) -> HtmlFragment:
         """Replace i-th row of self by s times i-th row of self. The operation is done in place."""
 
         return HtmlFragment(''.join([r'\[',
@@ -211,8 +226,7 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
             # Now guaranteed M[row][col] != 0
             if self.M[row][col] != 1:
-                if hasattr(self.M[row][col], 'args') and self.M[row][col].args() \
-                        and not (hasattr(self.M[row][col], 'degree') and self.M[row][col].degree() == 0):
+                if not is_invertible(self.M[row][col]):
          
                     output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie'
                                   f'${sage.all.latex(self.M[row][col])}$ jest niezerowe.')
@@ -267,13 +281,16 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
         return HtmlFragment('\n'.join(output))
 
-    def as_equations(self) -> 'SoLE':
+    def as_equations(self) -> SoLE:
         return SoLE(self)
 
-    def as_combination(self) -> 'LinearCombination':
+    def as_combination(self) -> LinearCombination:
         return LinearCombination(self)
 
-    def as_matrix(self) -> 'IMatrix':
+    def as_determinant(self, coefficient=1) -> Determinant:
+        return Determinant(self, coefficient)
+
+    def as_matrix(self) -> IMatrix:
         names = [str(v) for v in self.var]
         return IMatrix(self.M, copy=False, names=names, separate=self.separate)
 
@@ -504,6 +521,57 @@ class LinearCombination(IMatrix):
         output = ['+'.join(lhs), '=', self._format_column(-1)]
 
         return ' '.join(output)
+
+    def _repr_(self) -> str:
+        return f'IMatrix({repr(list(self.M))}, separate={self.separate}).as_combination()'
+
+
+class Determinant(IMatrix):
+    """A determinant of a square matrix, with coefficient."""
+
+    def __init__(self, M: IMatrix, coefficient=1):
+        names = [str(v) for v in M.var]
+        super().__init__(M.M, separate=M.separate, copy=False, names=names)
+
+        assert self.M.nrows() == self.M.ncols(), "Macierz wyznacznika musi być kwadratowa."
+        assert self.separate == 0, "Macierz wyznacznika nie może mieć wyrazów wolnych."
+
+        self.coefficient = coefficient
+
+    def _repr_(self) -> str:
+        return f'IMatrix({repr(list(self.M))}, separate={self.separate}).as_determinant({self.coefficient})'
+
+    def _latex_(self) -> str:
+        """Represent Determinant as a LaTeX formula."""
+
+        output = list()
+
+        column_format = 'r' * (self.M.ncols() - self.separate) + \
+                        ('|' if self.separate > 0 else '') + \
+                        'r' * self.separate
+
+        if self.coefficient != 1:
+            output.append('(' + str(self.coefficient) + r')\cdot')
+
+        output.append(r'\left|\begin{array}{'f'{column_format}''}')
+        for row in self.M:
+            output.append(' & '.join([sage.all.latex(el) for el in row]) + r'\\')
+        output.append(r'\end{array}\right|')
+
+        return '\n'.join(output)
+
+    def _swap_rows(self, r1: int, r2: int) -> Dict[int, str]:
+        if r1 != r2:
+            self.coefficient = -self.coefficient
+
+        return super()._swap_rows(r1, r2)
+
+    def _rescale_row(self, i: int, s) -> Dict[int, str]:
+        assert s != 0, "Mnożenie wiersza przez zero nie jest odwracalne"
+
+        self.coefficient = (1/s) * self.coefficient
+
+        return super()._rescale_row(i, s)
 
 
 class IMatrixTest(unittest.TestCase):
