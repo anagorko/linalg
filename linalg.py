@@ -228,7 +228,7 @@ class IMatrix(sage.structure.sage_object.SageObject):
             if self.M[row][col] != 1:
                 if not is_invertible(self.M[row][col]):
          
-                    output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie'
+                    output.append(f'<br>Przerywam eliminację bo nie wiem, czy wyrażenie '
                                   f'${sage.all.latex(self.M[row][col])}$ jest niezerowe.')
                     break
                 else:
