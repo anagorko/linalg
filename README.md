@@ -27,7 +27,7 @@ show(A)
 
 <img src="https://render.githubusercontent.com/render/math?math=%5Cleft%5B%5Cbegin%7Barray%7D%7Brr%7Cr%7D1%20%26%202%20%26%203%5C%5C4%20%26%205%20%26%206%5C%5C%5Cend%7Barray%7D%5Cright%5D">
 
-As a system of linear equations. The `.as_equations()` method returns a new object so if you want to render computations (e.g. Gaussian elimination) on linear equations (and not in the matrix notation), you should run `A = A.as_equations()` first.
+It can be represented as a system of linear equations. The `.as_equations()` method returns a new object so if you want to render computations (e.g. Gaussian elimination) on linear equations (and not in the matrix notation), you should run `A = A.as_equations()` first.
 
 ```python
 show(A.as_equations())
@@ -43,7 +43,7 @@ show(A.as_combination())
 
 <img src="https://render.githubusercontent.com/render/math?math=x%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A1%20%5C%5C%0A4%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D%2By%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A2%20%5C%5C%0A5%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D%20%3D%20%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A3%20%5C%5C%0A6%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D">
 
-A square matrix can be represented as a determinant.
+A square matrix can be represented as a determinant with `.as_determinant()` method.
 
 We can do symbolic expressions as well. `FractionField` is preferred over `SymbolicRing` because `SR` doesn't work over finite fields (so for example we can't mix parameters and `GF(5)` in it.)
 
