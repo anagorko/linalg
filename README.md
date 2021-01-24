@@ -45,7 +45,7 @@ show(A.as_combination())
 
 A square matrix can be interpreted as a determinant.
 
-We can do symbolic expressions as well. `FractionField` is preferred over `SymbolicRing` because `SR` doesn't work over finite fields (so for example we can't mix parameters and Z_5 in it.)
+We can do symbolic expressions as well. `FractionField` is preferred over `SymbolicRing` because `SR` doesn't work over finite fields (so for example we can't mix parameters and `GF(5)` in it.)
 
 ```python
 a, b, c = var('a b c')
