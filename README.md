@@ -27,7 +27,7 @@ show(A)
 
 <img src="https://render.githubusercontent.com/render/math?math=%5Cleft%5B%5Cbegin%7Barray%7D%7Brr%7Cr%7D1%20%26%202%20%26%203%5C%5C4%20%26%205%20%26%206%5C%5C%5Cend%7Barray%7D%5Cright%5D">
 
-As a system of linear equations. The `.as_equations()` method returns a new object so if you want to render computations (e.g. Gaussian elimination) on linear equations (and not in the matrix notation), you should run `A = A.as_equations()`.
+As a system of linear equations. The `.as_equations()` method returns a new object so if you want to render computations (e.g. Gaussian elimination) on linear equations (and not in the matrix notation), you should run `A = A.as_equations()` first.
 
 ```python
 show(A.as_equations())
