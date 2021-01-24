@@ -35,7 +35,7 @@ show(A.as_equations())
 
 <img src="https://render.githubusercontent.com/render/math?math=%5Cleft%5C%7B%5Cbegin%7Barray%7D%7Bccccl%7D%0Ax%26%2B%262%20y%26%3D%263%5C%5C%0A4%20x%26%2B%265%20y%26%3D%266%5C%5C%0A%5Cend%7Barray%7D%5Cright.">
 
-We can render it as a linear combination of column vectors.
+Another representation is a linear combination of column vectors.
 
 ```python
 show(A.as_combination())
@@ -43,7 +43,7 @@ show(A.as_combination())
 
 <img src="https://render.githubusercontent.com/render/math?math=x%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A1%20%5C%5C%0A4%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D%2By%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A2%20%5C%5C%0A5%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D%20%3D%20%5Cleft%5B%5Cbegin%7Barray%7D%7Bc%7D%0A3%20%5C%5C%0A6%20%5C%5C%0A%5Cend%7Barray%7D%5Cright%5D">
 
-A square matrix can be interpreted as a determinant.
+A square matrix can be represented as a determinant.
 
 We can do symbolic expressions as well. `FractionField` is preferred over `SymbolicRing` because `SR` doesn't work over finite fields (so for example we can't mix parameters and `GF(5)` in it.)
 
