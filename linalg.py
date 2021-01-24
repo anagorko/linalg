@@ -43,13 +43,9 @@ def is_invertible(x):
     """Return true if we can safely divide by x."""
 
     try:
-        float(x)
+        return float(x) != 0.0
     except TypeError:
         return False
-
-    # return not(hasattr(x, 'args') and x.args() and not (hasattr(x, 'degree') and x.degree() == 0))
-
-    return float(x) != 0.0
 
 
 def format_coefficient(coefficient) -> str:
