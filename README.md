@@ -114,4 +114,4 @@ A.to_echelon_form()
 
 ## Note
 
-Github doesn't support LaTeX directly so we have to use [a hack](https://gist.github.com/a-rodin/fef3f543412d6e1ec5b6cf55bf197d7b), which negatively affects quality.
+Github doesn't support LaTeX directly so we have to use [a hack](https://gist.github.com/a-rodin/fef3f543412d6e1ec5b6cf55bf197d7b), which negatively affects quality of math formulas displayed above.
