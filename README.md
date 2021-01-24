@@ -12,7 +12,7 @@ Just paste and run
 !wget -N https://raw.githubusercontent.com/anagorko/linalg/main/linalg.py
 from linalg import IMatrix
 ```
-in your Sage notebook. Thanks to @samorajp for the tip.
+in your Sage notebook. Thanks to @samorajp for the `wget` tip.
 
 ## Usage
 
