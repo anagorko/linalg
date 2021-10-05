@@ -12,7 +12,7 @@ AUTHORS:
     Andrzej Nagórko, Jarosław Wiśniewski
 
 VERSION:
-    19/01/2021
+    7/9/2021
 """
 
 from __future__ import annotations
@@ -165,7 +165,7 @@ class IMatrix(sage.structure.sage_object.SageObject):
 
         self.M.swap_rows(r1, r2)
 
-        return {r1: fr'\leftarrow w_{r2+1}', r2: fr'\leftarrow w_{r1+1}'}
+        return {r1: fr'\leftarrow r_{r2+1}', r2: fr'\leftarrow r_{r1+1}'}
 
     def swap_rows(self, r1: int, r2: int) -> HtmlFragment:
         """Swap rows r1 and r2 of self. The operation is done in place."""
@@ -173,6 +173,25 @@ class IMatrix(sage.structure.sage_object.SageObject):
         return HtmlFragment(''.join([r'\[',
                                      self._latex_(),
                                      self._format_row_operations(self._swap_rows(r1, r2)),
+                                     r'\rightarrow',
+                                     self._latex_(),
+                                     r'\]']))
+
+    def _lu_swap(self, r1: int, r2: int) -> Dict[int, str]:
+        """Swap rows r1 and r2 of self, up to second diagonal.
+        Used in LUP factorization. This operation is done in place."""
+
+        for i in range(self.M.nrows() + min(r1, r2)):
+            self.M[r1, i], self.M[r2, i] = self.M[r2, i], self.M[r1, i]
+
+        return {r1: fr'\leftarrow r_{r2+1} \setminus 0', r2: fr'\leftarrow r_{r1+1} \setminus 0'}
+
+    def lu_swap(self, r1: int, r2: int) -> HtmlFragment:
+        """Swap rows r1 and r2 of self, up to second diagonal.
+        Used in LUP factorization. This operation is done in place."""
+        return HtmlFragment(''.join([r'\[',
+                                     self._latex_(),
+                                     self._format_row_operations(self._lu_swap(r1, r2)),
                                      r'\rightarrow',
                                      self._latex_(),
                                      r'\]']))
